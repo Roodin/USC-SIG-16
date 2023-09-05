@@ -1,0 +1,86 @@
+reporting-engine:
+  - "*"
+account-financial-reporting:
+  - "*"
+account-financial-tools:
+  - "*"
+account-analytic:
+  - "*"
+account-invoicing:
+  - "*"
+account-invoice-reporting:
+  - "*"
+account-payment:
+  - "*"
+bank-payment:
+  - "*"
+bank-statement-reconcile:
+  - "*"
+commission:
+  - "*"
+community-data-files:
+  - "*"
+contract:
+  - "*"
+crm:
+  - "*"
+currency:
+  - "*"
+e-commerce:
+  - "*"
+l10n-spain:
+  - "*"
+mis-builder:
+  - "*"
+multi-company:
+  - "*"
+partner-contact:
+  - "*"
+project:
+  - "*"
+purchase-workflow:
+  - "*"
+queue:
+  - "*"
+sale-workflow:
+  - "*"
+server-ux:
+  - "*"
+server-tools:
+  - "*"
+social:
+  - "*"
+stock-logistics-workflow:
+  - "*"
+stock-logistics-barcode:
+  - "*"
+stock-logistics-warehouse:
+  - "*"
+stock-logistics-reporting:
+  - "*"
+web:
+  - "*"
+sale-reporting:
+  - "*"
+credit-control:
+  - "*"
+external_modules:
+  - "*"
+connector:
+  - "*"
+rest-framework:
+  - "*"
+connector-prestashop:
+  - "*"
+connector-ecommerce:
+  - "*"
+delivery-carrier:
+  - "*"
+website:
+  - "*"
+server-backend:
+  - "*"
+product-attribute:
+  - "*"
+report-print-send:
+  - "*"
