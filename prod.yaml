@@ -1,6 +1,21 @@
 version: "2.4"
 
 services:
+  odoo_proxy:
+    image: tecnativa/whitelist
+    depends_on:
+      - odoo
+    networks: &public
+      default:
+      public:
+    ports:
+      - "172.25.252.10:89:6899"
+      - "172.25.252.10:80:8069"
+    environment:
+      PORT: "6899 8069"
+      TARGET: odoo
+      ODOO_HTTP_SOCKET_TIMEOUT: 10
+
   odoo:
     extends:
       file: common.yaml
@@ -10,7 +25,6 @@ services:
       - .docker/odoo.env
       - .docker/db-access.env
     environment:
-      DB_FILTER: ""
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-prod}"
       INITIAL_LANG: "es_ES"
       PYTHONPATH: /opt/odoo/custom/src/odoo
@@ -21,10 +35,27 @@ services:
     labels:
       doodba.domain.main: ""
 
-  db:
+db:
     extends:
       file: common.yaml
       service: db
+    environment:
+      CONF_EXTRA: |
+        work_mem = 4915kB
+        max_connections = 1500
+        shared_buffers = 3840MB
+        effective_cache_size = 11520MB
+        maintenance_work_mem = 960MB
+        checkpoint_completion_target = 0.9
+        wal_buffers = 16MB
+        default_statistics_target = 100
+        random_page_cost = 1.1
+        effective_io_concurrency = 200
+        min_wal_size = 2GB
+        max_wal_size = 8GB
+        max_worker_processes = 12
+        max_parallel_workers_per_gather = 4
+        max_parallel_workers = 12
     env_file:
       - .docker/db-creation.env
     restart: unless-stopped
@@ -33,6 +64,7 @@ networks:
   default:
     driver_opts:
       encrypted: 1
+  public:
 
 volumes:
   filestore:
