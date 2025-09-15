@@ -31,7 +31,7 @@ project_license: AGPL-3.0-or-later
 project_name: usc_sig_16
 smtp_canonical_default: null
 smtp_canonical_domains: null
-smtp_default_from: null
+smtp_default_from: ''
 smtp_relay_host: null
 smtp_relay_port: 587
 smtp_relay_user: null
