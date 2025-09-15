@@ -2,7 +2,7 @@
 _commit: v8.2.1
 _src_path: gh:Comunitea/doodba-copier-template
 backup_deletion: false
-backup_dst: null
+backup_dst: ''
 backup_email_from: ''
 backup_email_to: ''
 backup_image_version: latest
