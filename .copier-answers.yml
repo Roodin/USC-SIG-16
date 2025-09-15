@@ -14,7 +14,7 @@ gitlab_url: https://gitlab.com/roodin/usc-sig-16
 odoo_dbfilter: ''
 odoo_initial_lang: es_ES
 odoo_listdb: true
-odoo_oci_image: null
+odoo_oci_image: ''
 odoo_proxy: ''
 odoo_version: 16.0
 paths_without_crawlers:
