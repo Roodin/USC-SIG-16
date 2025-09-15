@@ -3,8 +3,8 @@ _commit: v8.2.1
 _src_path: gh:Comunitea/doodba-copier-template
 backup_deletion: false
 backup_dst: null
-backup_email_from: null
-backup_email_to: null
+backup_email_from: ''
+backup_email_to: ''
 backup_image_version: latest
 backup_tz: UTC
 cidr_whitelist: null
@@ -29,7 +29,7 @@ postgres_version: '14'
 project_author: USC
 project_license: AGPL-3.0-or-later
 project_name: usc_sig_16
-smtp_canonical_default: null
+smtp_canonical_default: ''
 smtp_canonical_domains: null
 smtp_default_from: ''
 smtp_relay_host: ''
