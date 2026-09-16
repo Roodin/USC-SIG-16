@@ -5,8 +5,8 @@ services:
     build:
       context: ./odoo
       args:
-        DB_VERSION: "16"
-        ODOO_VERSION: "18.0"
+        DB_VERSION: "18"
+        ODOO_VERSION: "19.0"
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
         # To aggregate in use `setup-devel.yaml`
