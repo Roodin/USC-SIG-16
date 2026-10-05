@@ -196,7 +196,10 @@ class PracticeRubric(models.Model):
                 )
             field_name, operator, value = condition
             if field_name not in model._fields:
-                raise ValidationError(_("The domain field is not available."))
+                raise ValidationError(
+                    _("The domain field '%(field)s' is not available on model '%(model)s'.")
+                    % {"field": field_name, "model": model._name}
+                )
             if operator not in ALLOWED_DOMAIN_OPERATORS:
                 raise ValidationError(_("The domain operator is not supported."))
             if isinstance(value, (dict, tuple)):
