@@ -33,6 +33,7 @@ class PracticeGradingRun(models.Model):
     finished_at = fields.Datetime(readonly=True)
     rubric_snapshot = fields.Json(readonly=True)
     result_ids = fields.One2many("practice.grading.result", "run_id", readonly=True)
+    summary_ids = fields.One2many("practice.grading.summary", "run_id", readonly=True)
     total_score = fields.Float(compute="_compute_scores", store=True)
     total_weight = fields.Float(compute="_compute_scores", store=True)
 
@@ -77,6 +78,7 @@ class PracticeGradingRun(models.Model):
                 for criterion in run.rubric_id.criterion_ids:
                     result_values.append(run._evaluate_criterion(company, criterion))
             self.env["practice.grading.result"].create(result_values)
+            run._ensure_summaries()
             run.write({"state": "done", "finished_at": fields.Datetime.now()})
 
     def action_export_csv(self):
@@ -102,6 +104,27 @@ class PracticeGradingRun(models.Model):
         action["domain"] = [("run_id", "=", self.id)]
         action["context"] = {"search_default_group_by_company": 1}
         return action
+
+    def action_view_student_grades(self):
+        self.ensure_one()
+        self._ensure_summaries()
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "practice_grading.action_practice_grading_summary"
+        )
+        action["domain"] = [("run_id", "=", self.id)]
+        return action
+
+    def _ensure_summaries(self):
+        summary_model = self.env["practice.grading.summary"]
+        for run in self:
+            existing_company_ids = set(run.summary_ids.mapped("company_id").ids)
+            values = [
+                {"run_id": run.id, "company_id": company.id}
+                for company in run.company_ids
+                if company.id not in existing_company_ids
+            ]
+            if values:
+                summary_model.create(values)
 
     def write(self, values):
         if any(run.state != "draft" for run in self):
@@ -223,6 +246,7 @@ class PracticeGradingResult(models.Model):
     automatic_points = fields.Float(readonly=True)
     manual_points = fields.Float()
     awarded_points = fields.Float(compute="_compute_awarded_points", store=True)
+    has_evidence_link = fields.Boolean(compute="_compute_has_evidence_link")
     review_note = fields.Text()
     evidence = fields.Json(readonly=True)
 
@@ -235,6 +259,45 @@ class PracticeGradingResult(models.Model):
     def _compute_awarded_points(self):
         for result in self:
             result.awarded_points = result.automatic_points + result.manual_points
+
+    @api.depends("status", "evidence")
+    def _compute_has_evidence_link(self):
+        for result in self:
+            evidence = result.evidence or {}
+            result.has_evidence_link = bool(
+                result.status == "passed"
+                and evidence.get("model")
+                and (evidence.get("matching_record_ids") or evidence.get("record_ids"))
+            )
+
+    def action_view_evidence(self):
+        self.ensure_one()
+        evidence = self.evidence or {}
+        model_name = evidence.get("model")
+        record_ids = evidence.get("matching_record_ids") or evidence.get(
+            "record_ids", []
+        )
+        if not model_name or model_name not in self.env or not record_ids:
+            raise UserError(_("This result does not have navigable evidence."))
+        records = self.env[model_name].browse(record_ids).exists()
+        if not records:
+            raise UserError(_("The evidence records no longer exist."))
+        if len(records) == 1:
+            return {
+                "type": "ir.actions.act_window",
+                "res_model": model_name,
+                "res_id": records.id,
+                "view_mode": "form",
+                "target": "current",
+            }
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Evidence"),
+            "res_model": model_name,
+            "view_mode": "list,form",
+            "domain": [("id", "in", records.ids)],
+            "target": "current",
+        }
 
     @api.constrains("manual_points", "weight", "status")
     def _check_manual_points(self):
@@ -253,3 +316,58 @@ class PracticeGradingResult(models.Model):
         ):
             raise UserError(_("Only manual-review results accept manual points."))
         return super().write(values)
+
+
+class PracticeGradingSummary(models.Model):
+    _name = "practice.grading.summary"
+    _description = "Practice Grading Student Summary"
+    _order = "run_id, company_id"
+
+    run_id = fields.Many2one(
+        "practice.grading.run", required=True, ondelete="cascade", index=True
+    )
+    company_id = fields.Many2one(
+        "res.company", required=True, ondelete="restrict", index=True
+    )
+    student_identifier = fields.Char(
+        related="company_id.student_identifier", store=True, readonly=True
+    )
+    earned_points = fields.Float(compute="_compute_scores", store=True)
+    possible_points = fields.Float(compute="_compute_scores", store=True)
+    final_score = fields.Float(compute="_compute_scores", store=True)
+
+    _run_company_unique = models.Constraint(
+        "UNIQUE (run_id, company_id)",
+        "A grading run can only have one summary per company.",
+    )
+
+    @api.depends(
+        "run_id.result_ids.awarded_points",
+        "run_id.result_ids.company_id",
+        "run_id.rubric_id.total_weight",
+    )
+    def _compute_scores(self):
+        for summary in self:
+            results = summary.run_id.result_ids.filtered(
+                lambda result: result.company_id == summary.company_id
+            )
+            automatic_results = results.filtered(
+                lambda result: result.criterion_id.mode == "automatic"
+            )
+            summary.earned_points = sum(automatic_results.mapped("awarded_points"))
+            summary.possible_points = sum(automatic_results.mapped("weight"))
+            if summary.possible_points:
+                summary.final_score = 10 * summary.earned_points / summary.possible_points
+            else:
+                summary.final_score = 0.0
+
+    def action_view_results(self):
+        self.ensure_one()
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "practice_grading.action_practice_grading_result"
+        )
+        action["domain"] = [
+            ("run_id", "=", self.run_id.id),
+            ("company_id", "=", self.company_id.id),
+        ]
+        return action

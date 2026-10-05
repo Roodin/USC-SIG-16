@@ -42,6 +42,12 @@
                         type="object"
                         invisible="state != 'done'"
                     />
+                    <button
+                        name="action_view_student_grades"
+                        string="Student Grades"
+                        type="object"
+                        invisible="state != 'done'"
+                    />
                     <field name="state" widget="statusbar" statusbar_visible="draft,running,done" />
                 </header>
                 <sheet>

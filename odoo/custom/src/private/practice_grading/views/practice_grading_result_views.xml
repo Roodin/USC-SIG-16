@@ -36,6 +36,14 @@
                 <field name="automatic_points" sum="Automatic points" />
                 <field name="manual_points" readonly="status != 'manual_review'" />
                 <field name="awarded_points" sum="Final score" />
+                <field name="has_evidence_link" column_invisible="1" />
+                <button
+                    name="action_view_evidence"
+                    type="object"
+                    icon="fa-external-link"
+                    title="View Evidence"
+                    invisible="not has_evidence_link"
+                />
             </list>
         </field>
     </record>
@@ -61,13 +69,48 @@
                             <field name="awarded_points" />
                         </group>
                     </group>
+                    <button
+                        name="action_view_evidence"
+                        string="View Evidence"
+                        type="object"
+                        class="btn-secondary"
+                        invisible="not has_evidence_link"
+                    />
                     <group>
                         <field name="review_note" readonly="status != 'manual_review'" />
                         <field name="evidence" />
+                        <field name="has_evidence_link" invisible="1" />
                     </group>
                 </sheet>
             </form>
         </field>
+    </record>
+
+    <record id="view_practice_grading_summary_list" model="ir.ui.view">
+        <field name="name">practice.grading.summary.list</field>
+        <field name="model">practice.grading.summary</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="run_id" />
+                <field name="company_id" />
+                <field name="student_identifier" />
+                <field name="earned_points" />
+                <field name="possible_points" />
+                <field name="final_score" string="Final Score / 10" />
+                <button
+                    name="action_view_results"
+                    type="object"
+                    icon="fa-list"
+                    title="View Criteria"
+                />
+            </list>
+        </field>
+    </record>
+
+    <record id="action_practice_grading_summary" model="ir.actions.act_window">
+        <field name="name">Student Grades</field>
+        <field name="res_model">practice.grading.summary</field>
+        <field name="view_mode">list</field>
     </record>
 
     <record id="action_practice_grading_result" model="ir.actions.act_window">
