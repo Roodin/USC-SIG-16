@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "name": "Sales Process Practice",
+  "version": "1.2",
+  "description": "Automatic checks for the sales process practice.",
+  "pass_score": 4,
+  "criteria": [
+    {
+      "id": "customer_created",
+      "name": "Customer created",
+      "description": "A customer not linked to an Odoo company or user exists.",
+      "weight": 1,
+      "mode": "automatic",
+      "verifier": {
+        "type": "record_exists",
+        "model": "res.partner",
+        "domain": [
+          ["name", "!=", false],
+          ["ref_company_ids", "=", false],
+          ["user_ids", "=", false]
+        ]
+      }
+    },
+    {
+      "id": "opportunity_created",
+      "name": "Commercial opportunity created",
+      "weight": 1,
+      "mode": "automatic",
+      "verifier": {
+        "type": "record_exists",
+        "model": "crm.lead",
+        "domain": [["type", "=", "opportunity"]]
+      }
+    },
+    {
+      "id": "sale_order_confirmed",
+      "name": "Sale order confirmed",
+      "weight": 1,
+      "mode": "automatic",
+      "verifier": {
+        "type": "record_exists",
+        "model": "sale.order",
+        "domain": [["state", "=", "sale"]]
+      }
+    },
+    {
+      "id": "customer_invoice_posted",
+      "name": "Customer invoice posted",
+      "weight": 1,
+      "mode": "automatic",
+      "verifier": {
+        "type": "record_exists",
+        "model": "account.move",
+        "domain": [
+          ["move_type", "=", "out_invoice"],
+          ["state", "=", "posted"]
+        ]
+      }
+    },
+    {
+      "id": "process_explanation",
+      "name": "Process explanation",
+      "description": "Review the student explanation of ERP integration.",
+      "weight": 1,
+      "mode": "manual"
+    }
+  ]
+}

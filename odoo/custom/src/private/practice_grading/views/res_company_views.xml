@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_tree_inherit_practice_grading" model="ir.ui.view">
+        <field name="name">res.company.list.practice.grading</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="editable">top</attribute>
+                <attribute name="multi_edit">1</attribute>
+            </xpath>
+            <field name="name" position="after">
+                <field name="is_student_company" />
+            </field>
+        </field>
+    </record>
+
+    <record id="view_company_form_inherit_practice_grading" model="ir.ui.view">
+        <field name="name">res.company.form.practice.grading</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page
+                    string="Practice Grading"
+                    groups="practice_grading.group_practice_grading_manager"
+                >
+                    <group>
+                        <field name="is_student_company" />
+                        <field name="student_identifier" invisible="not is_student_company" />
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

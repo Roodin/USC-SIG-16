@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_practice_rubric_list" model="ir.ui.view">
+        <field name="name">practice.rubric.list</field>
+        <field name="model">practice.rubric</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" />
+                <field name="version" />
+                <field name="state" />
+                <field name="total_weight" />
+                <field name="pass_score" />
+                <field name="source_filename" />
+            </list>
+        </field>
+    </record>
+
+    <record id="view_practice_rubric_form" model="ir.ui.view">
+        <field name="name">practice.rubric.form</field>
+        <field name="model">practice.rubric</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button
+                        name="action_approve"
+                        string="Approve"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'draft'"
+                        groups="practice_grading.group_practice_grading_manager"
+                    />
+                    <button
+                        name="action_archive"
+                        string="Archive"
+                        type="object"
+                        invisible="state == 'archived'"
+                        groups="practice_grading.group_practice_grading_manager"
+                    />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,archived" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" />
+                        <h1><field name="name" readonly="state != 'draft'" /></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="version" readonly="state != 'draft'" />
+                            <field name="schema_version" />
+                            <field name="pass_score" readonly="state != 'draft'" />
+                            <field name="total_weight" />
+                        </group>
+                        <group>
+                            <field name="source_filename" />
+                            <field name="source_checksum" />
+                            <field name="source_file" filename="source_filename" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Criteria">
+                            <field name="criterion_ids" readonly="state != 'draft'">
+                                <list>
+                                    <field name="sequence" widget="handle" />
+                                    <field name="external_id" />
+                                    <field name="name" />
+                                    <field name="mode" />
+                                    <field name="verifier_type" />
+                                    <field name="weight" />
+                                </list>
+                                <form>
+                                    <group>
+                                        <field name="external_id" />
+                                        <field name="name" />
+                                        <field name="weight" />
+                                        <field name="mode" />
+                                        <field name="verifier_type" />
+                                    </group>
+                                    <group>
+                                        <field name="description" />
+                                        <field name="verifier_config" />
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Description">
+                            <field name="description" readonly="state != 'draft'" />
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_practice_rubric" model="ir.actions.act_window">
+        <field name="name">Rubrics</field>
+        <field name="res_model">practice.rubric</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_practice_rubric_import_wizard_form" model="ir.ui.view">
+        <field name="name">practice.rubric.import.wizard.form</field>
+        <field name="model">practice.rubric.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Rubric">
+                <group>
+                    <field name="rubric_file" filename="rubric_filename" />
+                    <field name="rubric_filename" />
+                    <field name="error_message" invisible="not error_message" />
+                    <field name="preview" invisible="not preview" />
+                </group>
+                <footer>
+                    <button name="action_validate" string="Validate" type="object" class="btn-secondary" />
+                    <button name="action_import" string="Import Draft" type="object" class="btn-primary" />
+                    <button string="Cancel" special="cancel" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_practice_rubric_import" model="ir.actions.act_window">
+        <field name="name">Import Rubric</field>
+        <field name="res_model">practice.rubric.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem
+        id="menu_practice_grading_root"
+        name="Practice Grading"
+        groups="practice_grading.group_practice_grading_reviewer,practice_grading.group_practice_grading_manager"
+        sequence="70"
+    />
+    <menuitem
+        id="menu_practice_rubric"
+        name="Rubrics"
+        parent="menu_practice_grading_root"
+        action="action_practice_rubric"
+        groups="practice_grading.group_practice_grading_reviewer,practice_grading.group_practice_grading_manager"
+        sequence="10"
+    />
+    <menuitem
+        id="menu_practice_rubric_import"
+        name="Import Rubric"
+        parent="menu_practice_grading_root"
+        action="action_practice_rubric_import"
+        groups="practice_grading.group_practice_grading_manager"
+        sequence="20"
+    />
+</odoo>

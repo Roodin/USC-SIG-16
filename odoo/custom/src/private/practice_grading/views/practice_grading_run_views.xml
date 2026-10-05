@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_practice_grading_run_list" model="ir.ui.view">
+        <field name="name">practice.grading.run.list</field>
+        <field name="model">practice.grading.run</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" />
+                <field name="rubric_id" />
+                <field name="state" />
+                <field name="started_at" />
+                <field name="finished_at" />
+                <field name="total_score" />
+                <field name="total_weight" />
+            </list>
+        </field>
+    </record>
+
+    <record id="view_practice_grading_run_form" model="ir.ui.view">
+        <field name="name">practice.grading.run.form</field>
+        <field name="model">practice.grading.run</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button
+                        name="action_run"
+                        string="Run Evaluation"
+                        type="object"
+                        class="btn-primary"
+                        invisible="state != 'draft'"
+                        groups="practice_grading.group_practice_grading_manager"
+                    />
+                    <button
+                        name="action_export_csv"
+                        string="Export CSV"
+                        type="object"
+                        invisible="state != 'done'"
+                    />
+                    <button
+                        name="action_view_results"
+                        string="View Results"
+                        type="object"
+                        invisible="state != 'done'"
+                    />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,done" />
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="rubric_id" readonly="state != 'draft'" />
+                            <field name="company_ids" widget="many2many_tags" readonly="state != 'draft'" />
+                        </group>
+                        <group>
+                            <field name="started_at" />
+                            <field name="finished_at" />
+                            <field name="total_score" />
+                            <field name="total_weight" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Results">
+                            <field name="result_ids" readonly="1">
+                                <list>
+                                    <field name="company_id" />
+                                    <field name="student_identifier" />
+                                    <field name="criterion_id" />
+                                    <field name="status" />
+                                    <field name="weight" sum="Total weight" />
+                                    <field name="automatic_points" sum="Automatic points" />
+                                    <field name="manual_points" readonly="status != 'manual_review'" />
+                                    <field name="awarded_points" sum="Final score" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Rubric Snapshot">
+                            <field name="rubric_snapshot" />
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_practice_grading_run" model="ir.actions.act_window">
+        <field name="name">Grading Runs</field>
+        <field name="res_model">practice.grading.run</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem
+        id="menu_practice_grading_run"
+        name="Grading Runs"
+        parent="menu_practice_grading_root"
+        action="action_practice_grading_run"
+        groups="practice_grading.group_practice_grading_reviewer,practice_grading.group_practice_grading_manager"
+        sequence="30"
+    />
+</odoo>
