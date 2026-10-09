@@ -13,6 +13,7 @@
         "account",
         "crm",
         "custom_multicompany",
+        "mail",
         "product_expiry",
         "purchase_stock",
         "sale_management",

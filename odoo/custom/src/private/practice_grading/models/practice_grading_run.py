@@ -8,6 +8,7 @@ class PracticeGradingRun(models.Model):
     _name = "practice.grading.run"
     _description = "Practice Grading Run"
     _order = "create_date desc, id desc"
+    _inherit = ["mail.thread"]
 
     name = fields.Char(compute="_compute_name", store=True)
     rubric_id = fields.Many2one(
@@ -29,6 +30,14 @@ class PracticeGradingRun(models.Model):
         required=True,
         readonly=True,
     )
+    publication_state = fields.Selection(
+        [("unpublished", "Unpublished"), ("published", "Published")],
+        default="unpublished",
+        required=True,
+        readonly=True,
+        tracking=True,
+    )
+    locked = fields.Boolean(default=False, readonly=True)
     started_at = fields.Datetime(readonly=True)
     finished_at = fields.Datetime(readonly=True)
     rubric_snapshot = fields.Json(readonly=True)
@@ -61,14 +70,20 @@ class PracticeGradingRun(models.Model):
 
     def action_run(self):
         for run in self:
-            if run.state != "draft":
-                raise ValidationError(_("Only draft grading runs can be executed."))
+            if run.locked:
+                raise ValidationError(_("Locked grading runs cannot be executed."))
+            if run.state not in {"draft", "done"}:
+                raise ValidationError(
+                    _("Only draft or completed grading runs can be executed.")
+                )
             if run.rubric_id.state != "approved":
                 raise ValidationError(_("Only approved rubrics can be executed."))
             run._check_student_companies()
-            run.write(
+            run.result_ids.unlink()
+            run.with_context(practice_grading_publication_action=True).write(
                 {
                     "state": "running",
+                    "publication_state": "unpublished",
                     "started_at": fields.Datetime.now(),
                     "rubric_snapshot": run._get_rubric_snapshot(),
                 }
@@ -79,7 +94,61 @@ class PracticeGradingRun(models.Model):
                     result_values.append(run._evaluate_criterion(company, criterion))
             self.env["practice.grading.result"].create(result_values)
             run._ensure_summaries()
-            run.write({"state": "done", "finished_at": fields.Datetime.now()})
+            finished_at = fields.Datetime.now()
+            run.write({"state": "done", "finished_at": finished_at})
+            execution_date = fields.Datetime.context_timestamp(
+                run, finished_at
+            ).strftime("%Y-%m-%d %H:%M:%S")
+            run.message_post(body=_("Evaluation executed on %s", execution_date))
+
+    def action_publish(self):
+        for run in self:
+            if not self.env.user.has_group(
+                "practice_grading.group_practice_grading_manager"
+            ):
+                raise UserError(_("Only grading managers can publish evaluations."))
+            if run.state != "done":
+                raise ValidationError(_("Only completed evaluations can be published."))
+            run.with_context(practice_grading_publication_action=True).write(
+                {"publication_state": "published"}
+            )
+            run.message_post(body=_("Evaluation published."))
+
+    def action_unpublish(self):
+        for run in self:
+            if not self.env.user.has_group(
+                "practice_grading.group_practice_grading_manager"
+            ):
+                raise UserError(_("Only grading managers can unpublish evaluations."))
+            if run.publication_state == "published":
+                run.with_context(practice_grading_publication_action=True).write(
+                    {"publication_state": "unpublished"}
+                )
+                run.message_post(body=_("Evaluation unpublished."))
+
+    def action_view_my_results(self):
+        self.ensure_one()
+        if self.publication_state != "published":
+            raise UserError(_("This evaluation is not published."))
+        company_ids = self.env.user.company_ids.filtered(
+            "is_student_company"
+        ).ids
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "practice_grading.action_practice_grading_student_result"
+        )
+        action["domain"] = [
+            ("run_id", "=", self.id),
+            ("company_id", "in", company_ids),
+        ]
+        return action
+
+    def action_lock(self):
+        for run in self:
+            if run.state != "done":
+                raise ValidationError(_("Only completed grading runs can be locked."))
+            if not run.locked:
+                run.write({"locked": True})
+                run.message_post(body=_("Evaluation locked."))
 
     def action_export_csv(self):
         self.ensure_one()
@@ -127,8 +196,22 @@ class PracticeGradingRun(models.Model):
                 summary_model.create(values)
 
     def write(self, values):
+        if (
+            "publication_state" in values
+            and not self.env.context.get("practice_grading_publication_action")
+        ):
+            raise UserError(_("Use the publish or unpublish action to change publication."))
+        if values.get("locked") is False and any(run.locked for run in self):
+            raise UserError(_("A locked grading run cannot be unlocked."))
         if any(run.state != "draft" for run in self):
-            allowed_values = {"state", "started_at", "finished_at", "rubric_snapshot"}
+            allowed_values = {
+                "state",
+                "started_at",
+                "finished_at",
+                "rubric_snapshot",
+                "locked",
+                "publication_state",
+            }
             if set(values) - allowed_values:
                 raise UserError(_("Completed grading runs cannot be modified."))
         return super().write(values)
@@ -249,6 +332,10 @@ class PracticeGradingResult(models.Model):
     )
     criterion_id = fields.Many2one(
         "practice.rubric.criterion", required=True, ondelete="restrict", index=True
+    )
+    criterion_name = fields.Char(related="criterion_id.name", store=True, readonly=True)
+    criterion_description = fields.Text(
+        related="criterion_id.description", store=True, readonly=True
     )
     status = fields.Selection(
         [

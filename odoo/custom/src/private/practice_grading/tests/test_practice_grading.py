@@ -203,3 +203,114 @@ class TestPracticeGrading(TransactionCase):
                 ]
             ).id
         ])
+
+    def test_completed_run_can_be_repeated_until_locked(self):
+        rubric = self._import_rubric()
+        rubric.action_approve()
+        run = self.env["practice.grading.run"].create(
+            {"rubric_id": rubric.id, "company_ids": [(6, 0, self.student_company.ids)]}
+        )
+
+        run.action_run()
+        first_result_ids = set(run.result_ids.ids)
+        self.assertEqual(run.state, "done")
+        self.assertEqual(
+            len(
+                run.message_ids.filtered(
+                    lambda message: "Evaluation executed on" in message.body
+                )
+            ),
+            1,
+        )
+
+        self.env["res.partner"].create(
+            {"name": "Practice Partner", "company_id": self.student_company.id}
+        )
+        run.action_run()
+
+        self.assertFalse(first_result_ids.intersection(run.result_ids.ids))
+        self.assertEqual(
+            run.result_ids.filtered(
+                lambda result: result.criterion_id.external_id == "partner_created"
+            ).status,
+            "passed",
+        )
+        execution_messages = run.message_ids.filtered(
+            lambda message: "Evaluation executed on" in message.body
+        )
+        self.assertEqual(len(execution_messages), 2)
+
+        run.action_lock()
+        self.assertTrue(run.locked)
+        with self.assertRaisesRegex(ValidationError, "Locked grading runs"):
+            run.action_run()
+
+    def test_student_only_sees_published_company_evaluations(self):
+        rubric = self._import_rubric()
+        rubric.action_approve()
+        run = self.env["practice.grading.run"].create(
+            {"rubric_id": rubric.id, "company_ids": [(6, 0, self.student_company.ids)]}
+        )
+        run.action_run()
+        student_group = self.env.ref(
+            "practice_grading.group_practice_grading_student"
+        )
+        student = self.env["res.users"].with_context(no_reset_password=True).create(
+            {
+                "name": "Practice Student",
+                "login": "practice.student",
+                "email": "practice.student@example.com",
+                "company_id": self.student_company.id,
+                "company_ids": [(6, 0, self.student_company.ids)],
+                "group_ids": [(6, 0, student_group.ids)],
+            }
+        )
+        manager_group = self.env.ref(
+            "practice_grading.group_practice_grading_manager"
+        )
+        manager = self.env["res.users"].with_context(no_reset_password=True).create(
+            {
+                "name": "Practice Grading Manager",
+                "login": "practice.grading.manager",
+                "email": "practice.grading.manager@example.com",
+                "company_id": self.student_company.id,
+                "company_ids": [(6, 0, self.student_company.ids)],
+                "group_ids": [
+                    (6, 0, (manager_group | self.env.ref("base.group_user")).ids)
+                ],
+            }
+        )
+
+        student_runs = self.env["practice.grading.run"].with_user(student)
+        student_results = self.env["practice.grading.result"].with_user(student)
+        manager_run = run.with_user(manager)
+        self.assertEqual(student_runs.search_count([]), 0)
+        self.assertEqual(student_results.search_count([]), 0)
+
+        manager_run.action_publish()
+        self.assertEqual(student_runs.search_count([]), 1)
+        self.assertEqual(student_results.search_count([]), 2)
+        visible_results = student_results.search([])
+        self.assertEqual(
+            set(visible_results.mapped("criterion_name")),
+            {"Partner created", "Explanation"},
+        )
+        self.assertEqual(
+            len(
+                visible_results.read(
+                    ["criterion_name", "criterion_description", "evidence"]
+                )
+            ),
+            2,
+        )
+        result_action = student_runs.browse(run.id).action_view_my_results()
+        self.assertIn(("company_id", "in", self.student_company.ids), result_action["domain"])
+
+        manager_run.action_unpublish()
+        self.assertEqual(student_runs.search_count([]), 0)
+        self.assertEqual(student_results.search_count([]), 0)
+
+        manager_run.action_publish()
+        manager_run.action_run()
+        self.assertEqual(run.publication_state, "unpublished")
+        self.assertEqual(student_runs.search_count([]), 0)

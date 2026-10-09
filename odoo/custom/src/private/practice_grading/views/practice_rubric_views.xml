@@ -133,7 +133,7 @@
     <menuitem
         id="menu_practice_grading_root"
         name="Practice Grading"
-        groups="practice_grading.group_practice_grading_reviewer,practice_grading.group_practice_grading_manager"
+        groups="practice_grading.group_practice_grading_reviewer,practice_grading.group_practice_grading_manager,practice_grading.group_practice_grading_student"
         sequence="70"
     />
     <menuitem
