@@ -188,9 +188,14 @@ class PracticeGradingRun(models.Model):
     def _execute_verifier(self, company, criterion):
         self.ensure_one()
         config = criterion.verifier_config
+        if criterion.verifier_type not in {"record_exists", "record_count", "field_equals"}:
+            verifier = getattr(self, "_execute_verifier_%s" % criterion.verifier_type, None)
+            if not verifier:
+                raise ValidationError(_("The verifier type is not implemented."))
+            return verifier(company, config)
+        company_domain = self._get_company_domain(config["model"], company)
         model = self.env[config["model"]].sudo().with_company(company)
-        domain = list(config["domain"])
-        domain.append(["company_id", "=", company.id])
+        domain = list(config["domain"]) + company_domain
         records = model.search(domain)
         evidence = {
             "model": config["model"],
@@ -206,13 +211,26 @@ class PracticeGradingRun(models.Model):
             return status, evidence
         if criterion.verifier_type == "field_equals":
             matching_records = records.filtered(
-                lambda record: record[config["field"]] == config["value"]
+                lambda record: self._get_record_value(record, config["field"]) == config["value"]
             )
             evidence["field"] = config["field"]
             evidence["expected_value"] = config["value"]
             evidence["matching_record_ids"] = matching_records.ids
             return ("passed" if matching_records else "failed", evidence)
         raise ValidationError(_("The verifier type is not implemented."))
+
+    def _get_company_domain(self, model_name, company):
+        model = self.env[model_name]
+        for field_path in ("company_id", "product_id.company_id", "product_tmpl_id.company_id"):
+            if self.env["practice.rubric"]._field_from_path(field_path, model):
+                return [(field_path, "in", [False, company.id])]
+        raise ValidationError(_("The verifier model has no company-scoped field."))
+
+    def _get_record_value(self, record, field_path):
+        value = record
+        for field_name in field_path.split("."):
+            value = value[field_name]
+        return value
 
 
 class PracticeGradingResult(models.Model):

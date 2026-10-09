@@ -1,17 +1,23 @@
 # Rubric Import Contract v1
 
-The rubric import wizard accepts UTF-8 encoded JSON documents that conform to
-`schemas/rubric-v1.json`.
+The rubric import wizard accepts UTF-8 encoded JSON documents conforming to
+`schemas/rubric-v1.json`, with schema versions 1.0 and 1.1.
 
 The document must contain `schema_version` with the value `1.0`, a rubric name,
 and at least one criterion. It may contain a separate human-managed `version`,
 which defaults to `1.0`. A criterion has a unique machine identifier, a name, a
 positive weight, and a mode.
 
-Optional top-level fields `evaluation_scope` and `notes` are text metadata.
-`total_weight` may be supplied as a consistency check; when present, it must
-match the sum of criterion weights. The imported rubric's total weight is always
-computed from its criteria.
+Version 1.1 uses an object for `evaluation_scope`, a list of strings for
+`notes`, and requires `total_weight` to match the sum of criterion weights.
+Version 1.0 remains supported with text metadata and an optional `total_weight`.
+The imported rubric's total weight is always computed from its criteria.
+
+Version 1.1 supports linked replenishment and purchase receipts, hierarchical
+warehouse locations, putaway rules, completed stock moves, serial deliveries
+and receipts, supplier offers, purchase returns, FIFO/FEFO configuration, lot
+receipt order, delivery lot splits, and FEFO dates. Composite verifiers only
+count completed stock moves and require company-scoped data.
 
 Manual criteria do not contain a verifier. They are created as results requiring
 instructor review.

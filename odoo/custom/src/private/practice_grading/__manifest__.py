@@ -9,7 +9,16 @@
     "website": "http://www.comunitea.com",
     "version": "19.0.1.0.0",
     "license": "AGPL-3",
-    "depends": ["account", "crm", "custom_multicompany", "sale_management"],
+    "depends": [
+        "account",
+        "crm",
+        "custom_multicompany",
+        "product_expiry",
+        "purchase_stock",
+        "sale_management",
+        "sale_stock",
+        "stock",
+    ],
     "data": [
         "security/practice_grading_security.xml",
         "security/ir.model.access.csv",

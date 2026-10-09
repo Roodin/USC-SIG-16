@@ -3,10 +3,11 @@
 Read the supplied Odoo practice and create a grading rubric as JSON.
 
 Return JSON only. It must conform exactly to the attached `rubric-v1.json`
-contract and set `schema_version` to `1.0`. Do not include markdown, comments,
+contract and set `schema_version` to `1.1`. Do not include markdown, comments,
 SQL, Python, XML, formulas, additional properties, or logical domain operators.
-Optional top-level `evaluation_scope` and `notes` fields may contain text. If you
-include `total_weight`, it must equal the sum of all criterion weights.
+Use an `evaluation_scope` object with the assigned student company, the current
+student database, and `exclude_demo_data`; `notes` must be a list of strings.
+`total_weight` is required and must equal the sum of all criterion weights.
 
 Only use `record_exists`, `record_count`, and `field_equals`. Every automatic
 criterion must query an Odoo model with `company_id`. Use manual criteria when a

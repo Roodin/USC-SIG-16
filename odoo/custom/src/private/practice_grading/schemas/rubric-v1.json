@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://usc.es/odoo/practice-grading/rubric-v1.json",
-  "title": "Practice Grading Rubric v1",
+  "title": "Practice Grading Rubric",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "name", "criteria"],
   "properties": {
     "schema_version": {
-      "const": "1.0"
+      "enum": ["1.0", "1.1"]
     },
     "name": {
       "type": "string",
@@ -23,10 +23,25 @@
       "type": "string"
     },
     "evaluation_scope": {
-      "type": "string"
+      "oneOf": [
+        {"type": "string"},
+        {
+          "type": "object",
+          "properties": {
+            "company": {"const": "assigned_student_company"},
+            "records": {"const": "student_database"},
+            "exclude_demo_data": {"type": "boolean"}
+          },
+          "required": ["company", "records", "exclude_demo_data"],
+          "additionalProperties": false
+        }
+      ]
     },
     "notes": {
-      "type": "string"
+      "oneOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"type": "string"}}
+      ]
     },
     "pass_score": {
       "type": "number",
@@ -94,7 +109,15 @@
       "required": ["type"],
       "properties": {
         "type": {
-          "enum": ["record_exists", "record_count", "field_equals"]
+          "enum": [
+            "record_exists", "record_count", "field_equals",
+            "workflow_linked", "hierarchical_locations", "putaway_rule",
+            "stock_move_destination", "serial_receipt", "serial_delivery",
+            "supplier_offer", "linked_purchase_receipt", "linked_return",
+            "return_same_serial", "product_removal_configuration",
+            "sequenced_lot_receipts", "lot_delivery_split",
+            "fefo_receipts_and_dates"
+          ]
         },
         "model": {
           "type": "string",
@@ -112,6 +135,63 @@
           "pattern": "^[a-z][a-z0-9_]*$"
         },
         "value": {}
+        ,"workflow": {"enum": ["replenishment_purchase", "purchase_receipt_done"]}
+        ,"product_name": {"type": "string", "minLength": 1}
+        ,"product_code": {"type": "string", "minLength": 1}
+        ,"required_purchase_state": {
+          "type": "array", "minItems": 1,
+          "items": {"enum": ["purchase", "done"]}
+        }
+        ,"purchase_origin": {"const": "replenishment"}
+        ,"parent_kind": {"const": "warehouse_stock"}
+        ,"pasillos": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        ,"estanterias": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        ,"columnas": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        ,"alturas": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        ,"usage": {"const": "internal"}
+        ,"expected_leaf_count": {"type": "integer", "minimum": 1}
+        ,"target_path": {"type": "string", "minLength": 1}
+        ,"quantity": {"type": "number", "exclusiveMinimum": 0}
+        ,"destination_path": {"type": "string", "minLength": 1}
+        ,"state": {"const": "done"}
+        ,"picking_type": {"enum": ["incoming", "outgoing", "internal"]}
+        ,"minimum_serials": {"type": "integer", "minimum": 1}
+        ,"unique": {"const": true}
+        ,"require_distinct": {"type": "boolean"}
+        ,"require_related_sale": {"type": "boolean"}
+        ,"vendor_ref": {"type": "string", "minLength": 1}
+        ,"price": {"type": "number", "exclusiveMinimum": 0}
+        ,"min_qty": {"type": "number", "exclusiveMinimum": 0}
+        ,"delay": {"type": "integer", "minimum": 1}
+        ,"qty": {"type": "number", "exclusiveMinimum": 0}
+        ,"unit_price": {"type": "number", "exclusiveMinimum": 0}
+        ,"receipt_state": {"const": "done"}
+        ,"original_sale_qty": {"type": "number", "exclusiveMinimum": 0}
+        ,"returned_quantity": {"type": "number", "exclusiveMinimum": 0}
+        ,"must_match_original_delivery": {"const": true}
+        ,"internal_destination": {"const": true}
+        ,"tracking": {"enum": ["lot", "serial"]}
+        ,"removal_strategy": {"enum": ["fifo", "fefo"]}
+        ,"expiration_enabled": {"type": "boolean"}
+        ,"lots": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["name", "qty"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "qty": {"type": "number", "exclusiveMinimum": 0}
+            }
+          }
+        }
+        ,"date_order": {"const": "B_before_A"}
+        ,"arrival_order": {"const": "A_before_B"}
+        ,"removal_dates_must_be_future": {"const": true}
+        ,"qty_total": {"type": "number", "exclusiveMinimum": 0}
+        ,"lot_quantities": {
+          "type": "object", "minProperties": 1,
+          "additionalProperties": {"type": "number", "exclusiveMinimum": 0}
+        }
       },
       "allOf": [
         {
@@ -138,6 +218,20 @@
             "required": ["model", "domain", "field", "value"]
           }
         }
+        ,{"if": {"properties": {"type": {"const": "workflow_linked"}}}, "then": {"required": ["workflow"]}}
+        ,{"if": {"properties": {"type": {"const": "hierarchical_locations"}}}, "then": {"required": ["parent_kind", "pasillos", "estanterias", "columnas", "alturas", "usage", "expected_leaf_count"]}}
+        ,{"if": {"properties": {"type": {"const": "putaway_rule"}}}, "then": {"required": ["target_path"]}}
+        ,{"if": {"properties": {"type": {"const": "stock_move_destination"}}}, "then": {"required": ["quantity", "destination_path", "state", "picking_type"]}}
+        ,{"if": {"properties": {"type": {"const": "serial_receipt"}}}, "then": {"required": ["product_code", "minimum_serials", "unique", "state", "destination_path"]}}
+        ,{"if": {"properties": {"type": {"const": "serial_delivery"}}}, "then": {"required": ["product_code", "quantity", "require_distinct", "require_related_sale"]}}
+        ,{"if": {"properties": {"type": {"const": "supplier_offer"}}}, "then": {"required": ["vendor_ref", "price", "min_qty", "delay"]}}
+        ,{"if": {"properties": {"type": {"const": "linked_purchase_receipt"}}}, "then": {"required": ["vendor_ref", "qty", "unit_price", "receipt_state"]}}
+        ,{"if": {"properties": {"type": {"const": "linked_return"}}}, "then": {"required": ["product_code", "quantity", "state", "original_sale_qty"]}}
+        ,{"if": {"properties": {"type": {"const": "return_same_serial"}}}, "then": {"required": ["product_code", "returned_quantity", "must_match_original_delivery", "internal_destination"]}}
+        ,{"if": {"properties": {"type": {"const": "product_removal_configuration"}}}, "then": {"required": ["product_code", "tracking", "removal_strategy"]}}
+        ,{"if": {"properties": {"type": {"const": "sequenced_lot_receipts"}}}, "then": {"required": ["product_code", "lots"]}}
+        ,{"if": {"properties": {"type": {"const": "lot_delivery_split"}}}, "then": {"required": ["product_code", "qty_total", "lot_quantities", "require_related_sale", "state"]}}
+        ,{"if": {"properties": {"type": {"const": "fefo_receipts_and_dates"}}}, "then": {"required": ["product_code", "lots", "date_order", "arrival_order", "removal_dates_must_be_future"]}}
       ]
     }
   }
