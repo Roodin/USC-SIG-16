@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import math
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
@@ -33,6 +34,8 @@ class PracticeRubric(models.Model):
     name = fields.Char(required=True)
     version = fields.Char(required=True, default="1.0")
     description = fields.Text()
+    evaluation_scope = fields.Text()
+    notes = fields.Text()
     schema_version = fields.Char(required=True, default="1.0", readonly=True)
     state = fields.Selection(
         [
@@ -95,7 +98,10 @@ class PracticeRubric(models.Model):
             "name",
             "version",
             "description",
+            "evaluation_scope",
+            "notes",
             "pass_score",
+            "total_weight",
             "criteria",
         }
         unexpected_keys = set(payload) - allowed_keys
@@ -118,6 +124,22 @@ class PracticeRubric(models.Model):
         for criterion in criteria:
             self._validate_criterion_payload(criterion, criterion_ids)
             total_weight += criterion["weight"]
+        declared_total_weight = payload.get("total_weight")
+        if declared_total_weight is not None:
+            if (
+                not isinstance(declared_total_weight, (int, float))
+                or isinstance(declared_total_weight, bool)
+                or not math.isclose(declared_total_weight, total_weight, rel_tol=1e-9)
+            ):
+                raise ValidationError(
+                    _("The total weight must match the sum of criterion weights.")
+                )
+        for field_name in ("evaluation_scope", "notes"):
+            value = payload.get(field_name)
+            if value is not None and not isinstance(value, str):
+                raise ValidationError(
+                    _("The %(field)s field must be a string.") % {"field": field_name}
+                )
         pass_score = payload.get("pass_score", 0.0)
         if not isinstance(pass_score, (int, float)) or isinstance(pass_score, bool):
             raise ValidationError(_("The pass score must be a number."))
@@ -305,6 +327,8 @@ class PracticeRubricImportWizard(models.TransientModel):
                 "name": payload["name"].strip(),
                 "version": payload.get("version", "1.0").strip(),
                 "description": payload.get("description"),
+                "evaluation_scope": payload.get("evaluation_scope"),
+                "notes": payload.get("notes"),
                 "schema_version": payload["schema_version"],
                 "source_filename": self.rubric_filename,
                 "source_file": self.rubric_file,

@@ -55,6 +55,26 @@ class TestPracticeGrading(TransactionCase):
         self.assertEqual(rubric.total_weight, 2)
         self.assertEqual(len(rubric.criterion_ids), 2)
 
+    def test_import_accepts_rubric_metadata_and_declared_total(self):
+        payload = dict(self.payload)
+        payload.update(
+            {
+                "evaluation_scope": "Sales workflow setup",
+                "notes": "Check the submitted practice database.",
+                "total_weight": 2,
+            }
+        )
+        rubric = self._import_rubric(payload)
+        self.assertEqual(rubric.evaluation_scope, payload["evaluation_scope"])
+        self.assertEqual(rubric.notes, payload["notes"])
+        self.assertEqual(rubric.total_weight, payload["total_weight"])
+
+    def test_import_rejects_incorrect_declared_total(self):
+        payload = dict(self.payload)
+        payload["total_weight"] = 3
+        with self.assertRaisesRegex(ValidationError, "total weight must match"):
+            self.env["practice.rubric"].validate_import_payload(payload)
+
     def test_import_rejects_unavailable_model(self):
         payload = dict(self.payload)
         payload["criteria"] = [dict(self.payload["criteria"][0])]

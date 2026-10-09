@@ -8,6 +8,11 @@ and at least one criterion. It may contain a separate human-managed `version`,
 which defaults to `1.0`. A criterion has a unique machine identifier, a name, a
 positive weight, and a mode.
 
+Optional top-level fields `evaluation_scope` and `notes` are text metadata.
+`total_weight` may be supplied as a consistency check; when present, it must
+match the sum of criterion weights. The imported rubric's total weight is always
+computed from its criteria.
+
 Manual criteria do not contain a verifier. They are created as results requiring
 instructor review.
 

@@ -85,6 +85,12 @@
                         <page string="Description">
                             <field name="description" readonly="state != 'draft'" />
                         </page>
+                        <page string="Evaluation Details">
+                            <group>
+                                <field name="evaluation_scope" readonly="state != 'draft'" />
+                                <field name="notes" readonly="state != 'draft'" />
+                            </group>
+                        </page>
                     </notebook>
                 </sheet>
             </form>

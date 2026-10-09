@@ -22,7 +22,17 @@
     "description": {
       "type": "string"
     },
+    "evaluation_scope": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
     "pass_score": {
+      "type": "number",
+      "minimum": 0
+    },
+    "total_weight": {
       "type": "number",
       "minimum": 0
     },
